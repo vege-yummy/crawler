@@ -5,7 +5,7 @@ from PIL import Image
 import requests
 import pytesseract
 import re
-
+from io import BytesIO
 class XinjiangSpider(scrapy.Spider):
     name = 'xinjiang'
     allowed_domains = ['gov.cn']
@@ -47,8 +47,11 @@ class XinjiangSpider(scrapy.Spider):
         for img in imgList:
             url=response.urljoin(img)
             print(url)
-            image=Image.open(url)
-            #result=pytesseract.image_to_string(image,lang="chi_sim")
+            tmp=BytesIO(requests.get(url).content)
+            image=Image.open(tmp)
+            result=pytesseract.image_to_string(image,lang="chi_sim")
+            print(result)
+            file.write(result)
 
         
 
