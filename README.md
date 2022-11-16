@@ -6,7 +6,9 @@ scrapy
 
 lxml
 
+pytesseract
 
+PIL
 
 ```shell
 #使用方法
