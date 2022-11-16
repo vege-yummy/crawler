@@ -1,11 +1,12 @@
 import scrapy
-from project.items import ProjectItem
+
 from lxml import etree
 from PIL import Image
 import requests
 import pytesseract
 import re
 from io import BytesIO
+
 class XinjiangSpider(scrapy.Spider):
     name = 'xinjiang'
     allowed_domains = ['gov.cn']
@@ -23,12 +24,15 @@ class XinjiangSpider(scrapy.Spider):
         titleList=html.xpath('//a/@title')
         urlList=html.xpath('//a/@href')
         #urlList=[x for x in urlList if 'javascript' not in x]
-        self.file=open("xinjiang.txt","w",encoding='utf-8')
+        file=open("xinjiang.txt","w",encoding='utf-8')
         for i in range(len(urlList)):
-            self.file.write(titleList[i]+"\n")
-            self.file.write(urlList[i]+"\n")
+            file.write(titleList[i]+"\n")
+            file.write(urlList[i]+"\n")
             url=response.urljoin(urlList[i])
             yield scrapy.Request(url=url,callback=self.crawlText)
+
+        #下一页
+
 
     #获取分页中的文字,包括图片中的文字
     def crawlText(self,response):
@@ -44,14 +48,16 @@ class XinjiangSpider(scrapy.Spider):
 
         #图片
         imgList=html.xpath('//img/@src')
+        result=''
         for img in imgList:
             url=response.urljoin(img)
             print(url)
             tmp=BytesIO(requests.get(url).content)
+            print(tmp)
             image=Image.open(tmp)
-            result=pytesseract.image_to_string(image,lang="chi_sim")
-            print(result)
-            file.write(result)
+            result=result+pytesseract.image_to_string(image,lang="chi_sim")
+
+        file.write(result)
 
         
 
@@ -68,12 +74,14 @@ class XinjiangSpider(scrapy.Spider):
         re_br=re.compile('<br\s*?/?>')#处理换行
         re_h=re.compile('</?\w+[^>]*>')#HTML标签
         re_comment=re.compile('<!--[^>]*-->')#HTML注释
+        re_bracket=re.compile('\{.*\}',re.S)#去掉大括号
         s=re_cdata.sub('',htmlstr)#去掉CDATA
         s=re_script.sub('',s) #去掉SCRIPT
         s=re_style.sub('',s)#去掉style
         s=re_br.sub('\n',s)#将br转换为换行
         s=re_h.sub('',s) #去掉HTML 标签
         s=re_comment.sub('',s)#去掉HTML注释
+        s=re_bracket.sub('',s)
         #去掉多余的空行
         blank_line=re.compile('\n+')
         s=blank_line.sub('\n',s)
